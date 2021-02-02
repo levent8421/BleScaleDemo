@@ -14,4 +14,5 @@
     </view>
     <button bindtap="eGetWeight">Get weight</button>
     <button bindtap="eGetCapacity">Get Capacity</button>
+    <button bindtap="eSendData">发送大量数据</button>
 </view>

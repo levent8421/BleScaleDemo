@@ -1,3 +1,9 @@
+/**
+ * @Author: Levent (levent8421@outlook.com)
+ * For :
+ * MeiCai BLE Scale device API
+ * create at: 2021.2.2. 
+ */
 import AutoSliceBuffer from './AutoSliceBuffer';
 import {
     stringToArrayBuffer
@@ -9,11 +15,19 @@ const READ_CHARACTERISTIC_UUID = '0000fff1-0000-1000-8000-00805f9b34fb';
 const LINE_END_R = 0x0D;
 const LINE_END_N = 0x0A;
 const TIMEOUT = 5000;
+const DEFAULT_CHANNEL = 0;
 
 const CMD_TABLE = {
     getWeight: stringToArrayBuffer('W\r\n'),
     getCapacity: stringToArrayBuffer('CAPACITY\r\n'),
     doZero: stringToArrayBuffer('Z\r\n'),
+    doTare: stringToArrayBuffer('T\r\n'),
+    setDecimal(decimal) {
+        return stringToArrayBuffer(`DECIMAL ${decimal}\r\n`);
+    },
+    sendData(channel, length, timeout) {
+        return stringToArrayBuffer(`SEND ${channel} ${length} ${timeout}\r\n`);
+    }
 };
 
 class ScaleApi {
@@ -224,19 +238,38 @@ class ScaleApi {
             }
         })
     }
-    async _sendForResponse(data, resolve, reject) {
+    async _sendForResponse(data, resolve, reject, timeout = TIMEOUT) {
         await this._send(data);
         this.timeoutTask = setTimeout(() => {
             reject({
                 errMsg: 'timeout'
             });
-        }, TIMEOUT);
+        }, timeout);
         this.newLineResolve = resolve;
     }
-    _sendForResponseSync(data) {
+    _sendForResponseSync(data, timeout = TIMEOUT) {
         const _this = this;
         return new Promise((resolve, reject) => {
-            _this._sendForResponse(data, resolve, reject);
+            _this._sendForResponse(data, resolve, reject, timeout);
+        });
+    }
+    _sendWithProtocol(cmd, minItems, onOk, onError, expectedStatus = 'A') {
+        this._sendForResponseSync(cmd).then(resp => {
+            const items = resp.split(' ');
+            if (items.length < minItems) {
+                onError({
+                    errMsg: `Invalidate Response length:${resp}`
+                });
+                return;
+            }
+            const status = items[1];
+            if (status != expectedStatus) {
+                onError({
+                    errMsg: `Invalidate status:${resp}`
+                });
+                return;
+            }
+            onOk(items);
         });
     }
     /**
@@ -250,22 +283,17 @@ class ScaleApi {
      * }
      */
     getWeight() {
+        const _this = this;
         const cmd = CMD_TABLE.getWeight;
         return new Promise((resolve, reject) => {
-            this._sendForResponseSync(cmd).then(res => {
-                const items = res.split(' ');
-                if (items.length < 7) {
-                    reject({
-                        errMsg: `Invalidate response:${res}`
-                    });
-                }
+            _this._sendWithProtocol(cmd, 7, items => {
                 resolve({
                     status: items[3],
                     gross: items[4],
                     tare: items[5],
                     net: items[6]
                 });
-            }).catch(err => reject(err))
+            }, reject);
         });
     }
     /**
@@ -277,22 +305,15 @@ class ScaleApi {
      * }
      */
     getCapacity() {
-        const _this = this;
         const cmd = CMD_TABLE.getCapacity;
+        const _this = this;
         return new Promise((resolve, reject) => {
-            _this._sendForResponseSync(cmd).then(res => {
-                const items = res.split(' ');
-                if (items.length < 4) {
-                    reject({
-                        errMsg: `Invalidate response:${res}`
-                    });
-                    return;
-                }
+            _this._sendWithProtocol(cmd, 4, items => {
                 resolve({
                     capacity: items[2],
                     unit: items[3],
                 });
-            }).catch(err => reject(err))
+            }, reject);
         });
     }
     /**
@@ -303,9 +324,55 @@ class ScaleApi {
         const _this = this;
         const cmd = CMD_TABLE.doZero;
         return new Promise((resolve, reject) => {
-            _this._sendForResponseSync(cmd).then(res => {
-
-            }).catch(reject)
+            _this._sendWithProtocol(cmd, 2, items => {
+                resolve(_this);
+            }, reject);
+        });
+    }
+    /**
+     * 去皮
+     * return Promise
+     */
+    doTare() {
+        const _this = this;
+        const cmd = CMD_TABLE.doTare;
+        return new Promise((resolve, reject) => {
+            _this._sendWithProtocol(cmd, 2, items => {
+                resolve(_this);
+            }, reject);
+        });
+    }
+    /**
+     * 设置小数位数
+     * @param {小数位数} decimal 0,1,2,3
+     */
+    setDecimal(decimal) {
+        const cmd = CMD_TABLE.setDecimal(decimal);
+        const _this = this;
+        return new Promise((resolve, reject) => {
+            _this._sendWithProtocol(cmd, 2, resolve, reject);
+        });
+    }
+    /**
+     * 发送数据
+     * @param {数据} data ArrayBuffer
+     * @param {超时时间} timeout 毫秒 
+     */
+    sendData(data, timeout) {
+        const cmd = CMD_TABLE.sendData(DEFAULT_CHANNEL, data.byteLength, timeout);
+        const _this = this;
+        return new Promise((resolve, reject) => {
+            this._sendWithProtocol(cmd, 2, () => {
+                _this._sendForResponseSync(data, timeout).then(resp => {
+                    if (resp == 'SEND A') {
+                        resolve(_this);
+                    } else {
+                        reject({
+                            errMsg: `Inavlidate response[SEND_AFTER]${resp}`
+                        })
+                    }
+                }).catch(reject);
+            }, reject, 'B')
         });
     }
 }

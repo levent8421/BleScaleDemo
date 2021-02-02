@@ -49,12 +49,23 @@ Page({
             showModal('重量获取成功', text);
         }).catch(err => {
             console.log(err);
-        })
+        });
     },
     eGetCapacity() {
         this.scaleApi.getCapacity().then(res => {
             const text = JSON.stringify(res);
             showModal('容量获取成功', text);
+        }).catch(err => console.log(err));
+    },
+    eSendData() {
+        const data = new ArrayBuffer(1024);
+        const buffer = new Uint8Array(data);
+        for (let i = 0; i < 1024; i++) {
+            buffer[i] = i % 0xFF;
+        }
+        this.scaleApi.sendData(data, 10000).then(res => {
+            console.log('Send success', res);
+            showModal('发送结束', 'Hallo');
         }).catch(err => console.log(err));
     }
 })
