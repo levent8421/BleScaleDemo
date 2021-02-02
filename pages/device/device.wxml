@@ -1,0 +1,17 @@
+<!--pages/device/device.wxml-->
+<view>
+    <view class="device">
+        <view class="title">
+            <text>{{device.name||'Unknown'}}</text>
+            <text>{{device.localName||'Unknown'}}</text>
+        </view>
+        <view class="addr">
+            <text>{{device.deviceId}}</text>
+        </view>
+    </view>
+    <view class="status">
+        <text>{{status}}</text>
+    </view>
+    <button bindtap="eGetWeight">Get weight</button>
+    <button bindtap="eGetCapacity">Get Capacity</button>
+</view>

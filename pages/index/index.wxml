@@ -1,0 +1,19 @@
+<!--index.wxml-->
+<view class="container">
+  <scroll-view>
+    <button bindtap="eTestBuffer" type="warn">BufferTest</button>
+    <button type="primary" bindtap="eOpenAndScan">Scan</button>
+    <text>搜索到设备［{{devices.length}}］个</text>
+    <view class="devices">
+      <view class="item-wrapper" wx:for="{{devices}}" wx:key="deviceId">
+        <view class="item" data-device="{{item}}" bindtap="eToDevice">
+          <view class="title">
+            <text>{{item.name||'Unknown'}}</text>
+            <text>{{item.localName||'Unknown'}}</text>
+          </view>
+          <view class="extra" >{{item.deviceId}}</view>
+        </view>
+      </view>
+    </view>
+  </scroll-view>
+</view>

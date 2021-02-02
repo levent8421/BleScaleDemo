@@ -1,0 +1,20 @@
+.devices {
+    width: 100%;
+}
+
+.devices .item-wrapper {
+    width: 100%;
+}
+
+.devices .item {
+    width: 80%;
+    margin: 24rpx auto 0 auto;
+    border-bottom: 1px solid #666666;
+}
+
+.devices .item .title {
+    width: 100%;
+    background-color: #eee;
+    display: flex;
+    justify-content: space-between;
+}
